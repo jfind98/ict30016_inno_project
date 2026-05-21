@@ -1,4 +1,6 @@
 #!/bin/bash
+# This may destroy the host. 10.20.2.254 crashed the host
+# Only known safe address 10.20.4.254
 
 TARGET="${1:?Usage: $0 <target_ip> [port]}"
 PORT="${2:-80}"
@@ -17,3 +19,5 @@ wait "$HPING_PID" 2>/dev/null
 
 echo ""
 echo "[*] Flood stopped."
+
+# Observe on target watch -n 1 'ss -s'
