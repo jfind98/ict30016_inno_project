@@ -1,6 +1,5 @@
 #!/bin/bash
 # hping3 DoS demonstration commands
-# hping3 is more reliable than Metasploit for basic flood demos
 # Run from Kali: sudo ./dos_hping3.sh <target_ip>
 
 TARGET="${1:?Usage: $0 <target_ip>}"

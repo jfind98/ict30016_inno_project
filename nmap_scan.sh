@@ -18,7 +18,7 @@
 # 1. Host discovery	-sn	                        Ping sweep — confirm host is up
 # 2. TCP full scan	-sS -p-	                    SYN scan all 65535 ports
 # 3. Service/OS	    -sV -O	                    Banner grab + OS fingerprint
-# 4. UDP	            -sU --top-ports 200	        Top 200 UDP ports (slow to go further)
+# 4. UDP	            -sU --top-ports 200	    Top 200 UDP ports (slow to go further)
 # 5. Vuln scan	    --script vuln,exploit,auth	NSE script categories for CVEs & misconfigs
 
 TARGET="$1"
