@@ -1,136 +1,84 @@
-# Suricata ruleset — hping3 DoS detection and mitigation
-# Covers attacks from dos_hping3.sh:
-#   1. SYN flood on port 80  (--syn --flood --rand-source)
-#   2. SYN flood on port 443 (--syn --flood --rand-source)
-#   3. UDP flood on port 53  (--udp --flood --rand-source)
-#
-# Rule actions:
-#   alert = log only (IDS mode)
-#   drop  = block + log (IPS mode, requires Suricata inline/nfqueue)
-#
-# Deploy: add this file to suricata.yaml under rule-files, then:
-#   sudo suricata-update
-#   sudo systemctl reload suricata
+# Suricata ruleset — Optimized targeting for dos_hping3.sh
+# Target: --syn --flood --rand-source and --udp --flood --rand-source
 # -------------------------------------------------------
 
 # -------------------------------------------------------
-# SECTION 1: hping3 FINGERPRINT DETECTION
-# hping3 defaults: TCP window=512, TTL=64, no TCP options
-# These rules identify hping3 specifically regardless of rate
+# SECTION 1: INSTANT SIGNATURE MATCHES (No Thresholds)
+# These drop malicious traffic on packet #1 without processing 
+# heavy tracking tables, saving massive amounts of engine CPU.
 # -------------------------------------------------------
 
-alert tcp any any -> $HOME_NET [80,443] (
-    msg:"HPING3 FINGERPRINT - SYN with default window and TTL";
-    flags:S,SA;
-    window:512;
-    ttl:64;
-    classtype:attempted-dos;
-    sid:9000001; rev:1;
-)
-
+# Catch pure hping3 TCP traffic based on default OS fingerprints
 drop tcp any any -> $HOME_NET [80,443] (
-    msg:"HPING3 FINGERPRINT DROP - SYN flood hping3 signature";
+    msg:"HPING3 ATTACK DROP - Explicit hping3 TCP fingerprint detected";
     flags:S,SA;
     window:512;
     ttl:64;
-    threshold:type both, track by_dst, count 50, seconds 5;
     classtype:attempted-dos;
-    sid:9000002; rev:1;
+    sid:9000001; rev:3;
 )
 
-# -------------------------------------------------------
-# SECTION 2: SYN FLOOD — ports 80 and 443
-# flags:S,SA = SYN bit set, ACK bit NOT set (pure SYN only)
-# detection_filter triggers after threshold is exceeded
-# -------------------------------------------------------
-
-alert tcp any any -> $HOME_NET 80 (
-    msg:"DOS SYN FLOOD ALERT - HTTP port 80 high SYN rate";
-    flags:S,SA;
-    detection_filter:track by_dst, count 200, seconds 1;
-    classtype:attempted-dos;
-    sid:9000003; rev:1;
-)
-
-drop tcp any any -> $HOME_NET 80 (
-    msg:"DOS SYN FLOOD DROP - HTTP port 80";
-    flags:S,SA;
-    detection_filter:track by_dst, count 500, seconds 1;
-    classtype:attempted-dos;
-    sid:9000004; rev:1;
-)
-
-alert tcp any any -> $HOME_NET 443 (
-    msg:"DOS SYN FLOOD ALERT - HTTPS port 443 high SYN rate";
-    flags:S,SA;
-    detection_filter:track by_dst, count 200, seconds 1;
-    classtype:attempted-dos;
-    sid:9000005; rev:1;
-)
-
-drop tcp any any -> $HOME_NET 443 (
-    msg:"DOS SYN FLOOD DROP - HTTPS port 443";
-    flags:S,SA;
-    detection_filter:track by_dst, count 500, seconds 1;
-    classtype:attempted-dos;
-    sid:9000006; rev:1;
-)
-
-# Catch-all SYN flood to any port on the host
-drop tcp any any -> $HOME_NET any (
-    msg:"DOS SYN FLOOD DROP - high SYN rate any port";
-    flags:S,SA;
-    detection_filter:track by_dst, count 1000, seconds 1;
-    classtype:attempted-dos;
-    sid:9000007; rev:1;
-)
-
-# -------------------------------------------------------
-# SECTION 3: UDP FLOOD — port 53 (DNS)
-# hping3 --udp --flood --rand-source -p 53
-# -------------------------------------------------------
-
-alert udp any any -> $HOME_NET 53 (
-    msg:"DOS UDP FLOOD ALERT - DNS port 53 high rate";
-    detection_filter:track by_dst, count 500, seconds 1;
-    classtype:attempted-dos;
-    sid:9000008; rev:1;
-)
-
+# Catch the script's UDP flood (hping3 sends 0-byte UDP payloads by default)
 drop udp any any -> $HOME_NET 53 (
-    msg:"DOS UDP FLOOD DROP - DNS port 53";
-    detection_filter:track by_dst, count 1000, seconds 1;
+    msg:"HPING3 ATTACK DROP - Malicious 0-byte UDP flood to DNS port";
+    dsize:0;
     classtype:attempted-dos;
-    sid:9000009; rev:1;
+    sid:9000002; rev:3;
 )
 
-# Catch-all UDP flood to any port
-drop udp any any -> $HOME_NET any (
-    msg:"DOS UDP FLOOD DROP - high UDP rate any port";
+# -------------------------------------------------------
+# SECTION 2: DESTINATION RATE MITIGATION (Countering --rand-source)
+# We track entirely BY_DST because source IPs are completely randomized.
+# -------------------------------------------------------
+
+# Port 80 SYN Flood Protection
+alert tcp any any -> $HOME_NET 80 (
+    msg:"DOS ATTACK ALERT - High Volume Pure SYN Rate on HTTP 80";
+    flags:S,SA;
+    detection_filter:track by_dst, count 200, seconds 1;
+    classtype:attempted-dos;
+    sid:9000003; rev:3;
+)
+drop tcp any any -> $HOME_NET 80 (
+    msg:"DOS ATTACK DROP - Mitigating HTTP 80 SYN Flood";
+    flags:S,SA;
+    detection_filter:track by_dst, count 500, seconds 1;
+    classtype:attempted-dos;
+    sid:9000004; rev:3;
+)
+
+# Port 443 SYN Flood Protection
+alert tcp any any -> $HOME_NET 443 (
+    msg:"DOS ATTACK ALERT - High Volume Pure SYN Rate on HTTPS 443";
+    flags:S,SA;
+    detection_filter:track by_dst, count 200, seconds 1;
+    classtype:attempted-dos;
+    sid:9000005; rev:3;
+)
+drop tcp any any -> $HOME_NET 443 (
+    msg:"DOS ATTACK DROP - Mitigating HTTPS 443 SYN Flood";
+    flags:S,SA;
+    detection_filter:track by_dst, count 500, seconds 1;
+    classtype:attempted-dos;
+    sid:9000006; rev:3;
+)
+
+# -------------------------------------------------------
+# SECTION 3: BACKSTOP CATCH-ALLS
+# Protects against variations of the attack hitting non-web ports.
+# -------------------------------------------------------
+
+drop tcp any any -> $HOME_NET ![80,443] (
+    msg:"DOS ATTACK DROP - Global SYN Flood mitigation on non-web ports";
+    flags:S,SA;
+    detection_filter:track by_dst, count 1000, seconds 1;
+    classtype:attempted-dos;
+    sid:9000007; rev:3;
+)
+
+drop udp any any -> $HOME_NET !53 (
+    msg:"DOS ATTACK DROP - Global UDP Flood mitigation on non-DNS ports";
     detection_filter:track by_dst, count 2000, seconds 1;
     classtype:attempted-dos;
-    sid:9000010; rev:1;
-)
-
-# -------------------------------------------------------
-# SECTION 4: HALF-OPEN CONNECTION EXHAUSTION
-# Detects SYN-RECV state buildup — complementary to rate rules
-# Fires when a single source sends repeated SYNs with no handshake
-# (less useful with --rand-source but catches non-spoofed variants)
-# -------------------------------------------------------
-
-alert tcp any any -> $HOME_NET [80,443] (
-    msg:"DOS HALF-OPEN EXHAUSTION - repeated SYN no handshake";
-    flags:S,SA;
-    threshold:type threshold, track by_src, count 100, seconds 10;
-    classtype:attempted-dos;
-    sid:9000011; rev:1;
-)
-
-drop tcp any any -> $HOME_NET [80,443] (
-    msg:"DOS HALF-OPEN EXHAUSTION DROP - repeated SYN no handshake";
-    flags:S,SA;
-    threshold:type threshold, track by_src, count 200, seconds 10;
-    classtype:attempted-dos;
-    sid:9000012; rev:1;
+    sid:9000008; rev:3;
 )
