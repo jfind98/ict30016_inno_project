@@ -1,0 +1,5 @@
+alert tcp !10.20.3.226 any -> 10.20.2.130 502 (
+msg:"Unauthorized Modbus Access Attempt";
+sid:1000001;
+rev:1;
+)
