@@ -1,0 +1,36 @@
+# Copyright(C) 2021, Stamus Networks
+# Written by Raphaël Brogat <rbrogat@stamus-networks.com>
+#
+# This file comes with ABSOLUTELY NO WARRANTY!
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+networks:
+    network:
+        name: clearndr-F60pwvanIorNAPPM
+
+include:
+    - db/db.compose.yaml
+    - events-stack/events-stack.compose.yaml
+    - nginx/nginx.compose.yaml
+    - scirius/scirius.compose.yaml
+    - scout/scout.compose.yaml
+    - suricata/suricata.compose.yaml
+    - utils/utils.compose.yaml
+
+
+
+
+
+
+
