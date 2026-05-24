@@ -1,0 +1,16 @@
+# Suricata ruleset — Modbus access control
+# Authorized Modbus master: 10.20.3.226
+# Modbus slave/device:      10.20.2.130 (port 502)
+#
+# Rule ordering (Suricata action priority): pass > drop > alert
+# The pass rule exempts the authorized IP from the drop rule below.
+
+# RULE 1 — ALLOW MASTER
+# Pass traffic from the authorized Modbus master — exempt from all drop rules
+pass tcp 10.20.3.226 any -> 10.20.2.130 502 (msg:"MODBUS ALLOW - Authorized master 10.20.3.226"; sid:9001001; rev:1;)
+
+# RULE 2 — ALERT on unauthorized Modbus access
+alert tcp !10.20.3.226 any -> 10.20.2.130 502 (msg:"MODBUS ALERT - Unauthorized source attempting Modbus connection"; classtype:policy-violation; sid:9001002; rev:1;)
+
+# RULE 3 — DROP unauthorized Modbus access
+drop tcp !10.20.3.226 any -> 10.20.2.130 502 (msg:"MODBUS DROP - Blocking unauthorized Modbus traffic"; classtype:policy-violation; sid:9001003; rev:1;)
